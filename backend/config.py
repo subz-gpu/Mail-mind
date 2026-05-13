@@ -8,7 +8,7 @@ load_dotenv()
 GEMINI_API_KEY         = os.getenv("GEMINI_API_KEY")
 GMAIL_CREDENTIALS_FILE = os.getenv("GMAIL_CREDENTIALS_FILE", "credentials.json")
 DATABASE_URL           = os.getenv("DATABASE_URL", "sqlite:///./emails.db")
-GEMINI_MODEL           = "gemini-2.5-flash-preview-05-20"
+GEMINI_MODEL           = "gemini-3-flash-preview"
 
 GMAIL_SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
