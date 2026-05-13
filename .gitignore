@@ -1,0 +1,9 @@
+venv/
+.env
+token.json
+__pycache__/
+*.pyc
+emails.db
+*.egg-info/
+dist/
+build/

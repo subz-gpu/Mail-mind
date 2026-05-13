@@ -1,0 +1,1505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MailMind — AI Email Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  /* Core palette — deep ink with warm undertones */
+  --bg:          #0a0b0f;
+  --bg2:         #0f1116;
+  --surface:     #13151c;
+  --surface2:    #191c26;
+  --surface3:    #1f2330;
+  --border:      rgba(255,255,255,0.055);
+  --border2:     rgba(255,255,255,0.1);
+  --border3:     rgba(255,255,255,0.16);
+
+  /* Text */
+  --t1: #f4f5f8;
+  --t2: #9aa0b8;
+  --t3: #565d7a;
+  --t4: #343847;
+
+  /* Accents */
+  --blue:        #4a7cf7;
+  --blue-soft:   rgba(74,124,247,0.12);
+  --blue-glow:   rgba(74,124,247,0.22);
+  --green:       #2dd4a0;
+  --green-soft:  rgba(45,212,160,0.1);
+  --amber:       #f5a623;
+  --amber-soft:  rgba(245,166,35,0.1);
+  --red:         #f56565;
+  --red-soft:    rgba(245,101,101,0.1);
+  --indigo:      #818cf8;
+
+  /* Gmail-like category colors */
+  --cat-primary: #4a7cf7;
+  --cat-social:  #2dd4a0;
+  --cat-promo:   #f5a623;
+
+  --radius-xs:   4px;
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   18px;
+  --radius-xl:   24px;
+  --ease:        cubic-bezier(0.4,0,0.2,1);
+  --spring:      cubic-bezier(0.34,1.56,0.64,1);
+}
+
+body {
+  font-family: 'Geist', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--t1);
+  min-height: 100vh;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Ambient light */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--blue), var(--indigo), transparent);
+  opacity: 0.6;
+  z-index: 100;
+}
+
+/* ── App shell ── */
+.app {
+  display: grid;
+  grid-template-columns: 68px 240px 1fr;
+  grid-template-rows: 100vh;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Icon rail ── */
+.rail {
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+  gap: 4px;
+  z-index: 10;
+}
+
+.rail-logo {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--blue), var(--indigo));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 24px var(--blue-glow);
+  flex-shrink: 0;
+}
+
+.rail-btn {
+  width: 44px; height: 44px;
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--t3);
+  font-size: 18px;
+  border: none; background: transparent;
+  transition: all 0.18s var(--ease);
+  position: relative;
+}
+
+.rail-btn:hover { background: var(--surface); color: var(--t2); }
+
+.rail-btn.active {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.rail-btn .badge {
+  position: absolute;
+  top: 6px; right: 6px;
+  width: 8px; height: 8px;
+  background: var(--blue);
+  border-radius: 50%;
+  border: 2px solid var(--bg2);
+}
+
+.rail-spacer { flex: 1; }
+
+.rail-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600;
+  color: white; cursor: pointer;
+  margin-top: 8px;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-top {
+  padding: 16px 14px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.compose-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 16px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  color: var(--t1);
+  font-family: 'Geist', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s var(--ease);
+}
+
+.compose-btn:hover {
+  background: var(--surface3);
+  border-color: var(--border3);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.compose-btn .icon { font-size: 16px; }
+
+.sidebar-section {
+  padding: 8px 8px 0;
+}
+
+.sidebar-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t4);
+  padding: 8px 10px 6px;
+}
+
+.nav-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--t2);
+  font-size: 13px;
+  font-weight: 400;
+  transition: all 0.15s var(--ease);
+  position: relative;
+  border: 1px solid transparent;
+}
+
+.nav-row:hover { background: var(--surface2); color: var(--t1); }
+
+.nav-row.active {
+  background: var(--blue-soft);
+  color: var(--blue);
+  border-color: rgba(74,124,247,0.12);
+  font-weight: 500;
+}
+
+.nav-row .nav-icon { font-size: 15px; width: 18px; text-align: center; flex-shrink: 0; }
+.nav-row .nav-count { margin-left: auto; font-size: 11px; font-weight: 600; }
+
+.sidebar-divider { height: 1px; background: var(--border); margin: 10px 10px; }
+
+/* Categories */
+.category-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.storage-bar-wrap { margin-bottom: 6px; }
+.storage-label { font-size: 11px; color: var(--t3); margin-bottom: 6px; }
+.storage-bar { height: 3px; background: var(--surface3); border-radius: 2px; overflow: hidden; }
+.storage-fill { height: 100%; width: 34%; background: linear-gradient(90deg, var(--blue), var(--indigo)); border-radius: 2px; }
+
+/* ── Main panel ── */
+.main {
+  display: grid;
+  grid-template-rows: 56px 1fr;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ── Top bar ── */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.search-wrap {
+  flex: 1;
+  max-width: 600px;
+  position: relative;
+}
+
+.search-wrap input {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--t1);
+  font-family: 'Geist', sans-serif;
+  font-size: 13px;
+  padding: 9px 16px 9px 40px;
+  outline: none;
+  transition: all 0.18s var(--ease);
+}
+
+.search-wrap input:focus {
+  border-color: var(--border2);
+  background: var(--surface2);
+  box-shadow: 0 0 0 3px var(--blue-soft);
+}
+
+.search-wrap input::placeholder { color: var(--t3); }
+
+.search-icon {
+  position: absolute;
+  left: 14px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--t3);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.icon-btn {
+  width: 34px; height: 34px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  color: var(--t3);
+  font-size: 16px;
+  border: none; background: transparent;
+  transition: all 0.15s var(--ease);
+}
+
+.icon-btn:hover { background: var(--surface); color: var(--t2); }
+
+/* ── Content area ── */
+.content {
+  display: grid;
+  grid-template-columns: 1fr;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Views */
+.view { display: none; height: 100%; overflow: hidden; }
+.view.active { display: flex; flex-direction: column; }
+
+/* ── Inbox view ── */
+.inbox-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.toolbar-left { display: flex; align-items: center; gap: 8px; }
+.toolbar-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+.tb-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--t2);
+  font-family: 'Geist', sans-serif;
+  font-size: 12px; font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+
+.tb-btn:hover { background: var(--surface2); color: var(--t1); border-color: var(--border2); }
+.tb-btn.primary { background: var(--blue); color: white; border-color: transparent; box-shadow: 0 0 20px var(--blue-glow); }
+.tb-btn.primary:hover { background: #6090ff; transform: translateY(-1px); }
+
+select.tb-select {
+  appearance: none;
+  padding: 7px 28px 7px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--t2);
+  font-family: 'Geist', sans-serif;
+  font-size: 12px;
+  cursor: pointer;
+  outline: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23565d7a'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+select.tb-select option { background: #191c26; }
+
+/* ── Category tabs ── */
+.category-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+
+.cat-tab {
+  display: flex; align-items: center; gap: 7px;
+  padding: 10px 16px;
+  font-size: 12px; font-weight: 500;
+  color: var(--t3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s var(--ease);
+  white-space: nowrap;
+}
+
+.cat-tab:hover { color: var(--t2); }
+.cat-tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+.cat-tab .cat-icon { font-size: 13px; }
+.cat-tab .cat-count {
+  background: var(--blue-soft);
+  color: var(--blue);
+  font-size: 10px; font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 100px;
+}
+
+/* ── Email list ── */
+.email-list-wrap { flex: 1; overflow-y: auto; }
+
+.email-list-wrap::-webkit-scrollbar { width: 5px; }
+.email-list-wrap::-webkit-scrollbar-track { background: transparent; }
+.email-list-wrap::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+.email-item {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: 0;
+  padding: 0 20px;
+  height: 56px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s var(--ease);
+  animation: fadeSlide 0.25s var(--ease) both;
+  position: relative;
+}
+
+@keyframes fadeSlide {
+  from { opacity: 0; transform: translateX(-6px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.email-item:hover { background: var(--surface); }
+.email-item.selected { background: var(--blue-soft); }
+.email-item.unread .email-sender-name { font-weight: 600; color: var(--t1); }
+.email-item.unread::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 50%;
+  transform: translateY(-50%);
+  width: 3px; height: 24px;
+  background: var(--blue);
+  border-radius: 0 2px 2px 0;
+}
+
+.email-check {
+  display: flex; align-items: center; justify-content: center;
+}
+
+.avatar-circle {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 600;
+  color: white; flex-shrink: 0;
+}
+
+.email-body-col {
+  display: flex; flex-direction: column;
+  min-width: 0;
+  padding: 0 14px 0 0;
+}
+
+.email-row1 {
+  display: flex; align-items: center;
+  gap: 8px; margin-bottom: 2px;
+}
+
+.email-sender-name {
+  font-size: 13px; font-weight: 400;
+  color: var(--t2);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.email-subject-line {
+  font-size: 13px; color: var(--t1);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.email-preview {
+  font-size: 12px; color: var(--t3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.email-row2 { display: flex; align-items: center; gap: 6px; }
+
+.email-snippet-combined {
+  font-size: 12px; color: var(--t3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.email-meta-col {
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 6px;
+  flex-shrink: 0;
+}
+
+.email-time {
+  font-size: 11px; color: var(--t3);
+  white-space: nowrap;
+}
+
+.quick-reply-btn {
+  opacity: 0;
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 10px;
+  background: var(--blue);
+  color: white;
+  border: none;
+  border-radius: 100px;
+  font-family: 'Geist', sans-serif;
+  font-size: 11px; font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+  white-space: nowrap;
+}
+
+.email-item:hover .quick-reply-btn { opacity: 1; }
+.quick-reply-btn:hover { background: #6090ff; transform: scale(1.04); }
+
+/* Chips */
+.chip {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px;
+  border-radius: 100px;
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.chip-blue   { background: var(--blue-soft);  color: var(--blue); }
+.chip-green  { background: var(--green-soft);  color: var(--green); }
+.chip-amber  { background: var(--amber-soft);  color: var(--amber); }
+.chip-red    { background: var(--red-soft);    color: var(--red); }
+.chip-gray   { background: var(--surface3);    color: var(--t2); }
+
+/* ── Reading pane (split view) ── */
+.split-view {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  height: 100%;
+  overflow: hidden;
+}
+
+.split-list { border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.split-list .email-list-wrap { flex: 1; }
+
+.reading-pane {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.reading-empty {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: var(--t4);
+  gap: 12px;
+}
+
+.reading-empty .big-icon { font-size: 48px; opacity: 0.3; }
+.reading-empty p { font-size: 13px; }
+
+/* Email reader */
+.reader-header {
+  padding: 20px 28px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.reader-subject {
+  font-family: 'Instrument Serif', Georgia, serif;
+  font-size: 22px;
+  font-weight: 400;
+  color: var(--t1);
+  margin-bottom: 14px;
+  line-height: 1.3;
+}
+
+.reader-meta {
+  display: flex; align-items: center; gap: 12px;
+}
+
+.reader-avatar {
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 600;
+  color: white; flex-shrink: 0;
+}
+
+.reader-sender-info { flex: 1; min-width: 0; }
+.reader-sender-name { font-size: 13px; font-weight: 600; color: var(--t1); margin-bottom: 2px; }
+.reader-sender-email { font-size: 12px; color: var(--t3); }
+.reader-date { font-size: 11px; color: var(--t3); white-space: nowrap; }
+
+.reader-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+
+.reader-actions {
+  display: flex; gap: 8px; align-items: center;
+  padding: 12px 28px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.reader-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  font-size: 14px;
+  color: var(--t2);
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.reader-body::-webkit-scrollbar { width: 5px; }
+.reader-body::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+/* ── AI Reply panel ── */
+.reply-drawer {
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+  transition: all 0.3s var(--ease);
+}
+
+.reply-drawer-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 20px 10px;
+}
+
+.reply-drawer-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 16px;
+  font-style: italic;
+  color: var(--t1);
+}
+
+.ai-badge {
+  display: flex; align-items: center; gap: 5px;
+  background: var(--blue-soft);
+  border: 1px solid rgba(74,124,247,0.2);
+  color: var(--blue);
+  padding: 3px 9px;
+  border-radius: 100px;
+  font-size: 11px; font-weight: 600;
+}
+
+.ai-badge::before {
+  content: '';
+  width: 5px; height: 5px;
+  background: var(--blue);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(0.7)} }
+
+.tone-row {
+  display: flex; gap: 6px;
+  padding: 0 20px 12px;
+  flex-wrap: wrap;
+}
+
+.tone-pill {
+  padding: 5px 13px;
+  border-radius: 100px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--t3);
+  font-family: 'Geist', sans-serif;
+  font-size: 11px; font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+
+.tone-pill:hover { border-color: var(--border2); color: var(--t2); }
+.tone-pill.active { background: var(--blue-soft); border-color: rgba(74,124,247,0.25); color: var(--blue); }
+
+.reply-textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--t1);
+  font-family: 'Geist', sans-serif;
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 14px 16px;
+  min-height: 130px;
+  max-height: 220px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s var(--ease);
+  margin: 0 20px;
+  width: calc(100% - 40px);
+}
+
+.reply-textarea:focus { border-color: rgba(74,124,247,0.4); }
+
+.reply-actions {
+  display: flex; gap: 8px; align-items: center;
+  padding: 12px 20px 16px;
+}
+
+/* ── Variants view ── */
+.variants-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 0 20px 12px;
+}
+
+.variant-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.15s var(--ease);
+}
+
+.variant-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+.variant-card.selected { border-color: var(--blue); background: var(--blue-soft); }
+.variant-card-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--blue); margin-bottom: 8px; }
+.variant-card-text { font-size: 11px; color: var(--t2); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ── History view ── */
+.history-view-inner { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.history-view-inner::-webkit-scrollbar { width: 5px; }
+.history-view-inner::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+.history-header-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.history-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 24px;
+  color: var(--t1);
+}
+
+.history-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-bottom: 10px;
+  transition: border-color 0.15s var(--ease);
+  animation: fadeSlide 0.25s var(--ease) both;
+}
+
+.history-card:hover { border-color: var(--border2); }
+.history-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.history-card-subject { font-size: 14px; font-weight: 500; color: var(--t1); margin-bottom: 3px; }
+.history-card-sender { font-size: 12px; color: var(--t3); }
+.history-card-chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.history-reply-box {
+  background: var(--surface2);
+  border-left: 2px solid var(--blue);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: 12px 14px;
+  font-size: 12px; color: var(--t2); line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.history-card-footer { display: flex; align-items: center; margin-top: 10px; }
+.history-card-time { font-size: 11px; color: var(--t4); margin-left: auto; }
+
+/* ── Loading / Empty ── */
+.loading-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 20px 24px;
+  color: var(--t3); font-size: 13px;
+}
+
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--border2);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 48px 20px;
+  color: var(--t4); text-align: center;
+  gap: 10px;
+}
+
+.empty-state .eicon { font-size: 36px; opacity: 0.35; margin-bottom: 4px; }
+.empty-state .etitle { font-size: 15px; font-weight: 500; color: var(--t3); }
+.empty-state .edesc { font-size: 12px; line-height: 1.6; max-width: 260px; }
+
+/* ── Stats strip ── */
+.stats-strip {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.stat-pill {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 10px 8px;
+  border-right: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.stat-pill:last-child { border-right: none; }
+.stat-pill:hover { background: var(--surface); }
+
+.stat-val {
+  font-family: 'Instrument Serif', serif;
+  font-size: 20px;
+  color: var(--t1);
+  line-height: 1;
+  margin-bottom: 3px;
+}
+
+.stat-lbl {
+  font-size: 10px;
+  color: var(--t4);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-md);
+  padding: 12px 18px;
+  font-size: 13px; font-weight: 500;
+  color: var(--t1);
+  z-index: 999;
+  display: flex; align-items: center; gap: 9px;
+  transform: translateY(60px); opacity: 0;
+  transition: all 0.3s var(--spring);
+  max-width: 300px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.success { border-color: rgba(45,212,160,0.25); }
+.toast.error   { border-color: rgba(245,101,101,0.25); }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- Icon rail -->
+  <div class="rail">
+    <div class="rail-logo">✉</div>
+    <button class="rail-btn active" onclick="switchView('inbox')" title="Inbox">📥<span class="badge"></span></button>
+    <button class="rail-btn" onclick="switchView('history')" title="History">🕐</button>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" title="Settings">⚙️</button>
+    <div class="rail-avatar">S</div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-top">
+      <button class="compose-btn" onclick="switchView('inbox')">
+        <span class="icon">✦</span> MailMind AI
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="nav-row active" onclick="switchView('inbox');setQuery('is:unread')">
+        <span class="nav-icon">📥</span> Inbox
+        <span class="nav-count" id="navCount" style="color:var(--blue)"></span>
+      </div>
+      <div class="nav-row" onclick="switchView('inbox');setQuery('is:starred')">
+        <span class="nav-icon">⭐</span> Starred
+      </div>
+      <div class="nav-row" onclick="switchView('inbox');setQuery('is:important')">
+        <span class="nav-icon">🏷️</span> Important
+      </div>
+      <div class="nav-row" onclick="switchView('inbox');setQuery('in:sent')">
+        <span class="nav-icon">📤</span> Sent
+      </div>
+    </div>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-label">Labels</div>
+      <div class="nav-row" onclick="switchView('history')">
+        <span class="category-dot" style="background:var(--blue)"></span> AI Replies
+      </div>
+      <div class="nav-row">
+        <span class="category-dot" style="background:var(--green)"></span> Work
+      </div>
+      <div class="nav-row">
+        <span class="category-dot" style="background:var(--amber)"></span> Personal
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="storage-bar-wrap">
+        <div class="storage-label">3.4 GB of 15 GB used</div>
+        <div class="storage-bar"><div class="storage-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Search emails…" id="searchInput" 
+       oninput="searchEmails(this.value)"
+       onkeydown="if(event.key==='Enter') fetchSearch(this.value)">
+      </div>
+      <div class="topbar-right">
+        <button class="icon-btn" title="Refresh" onclick="loadEmails()">↻</button>
+        <button class="icon-btn" title="Grid view">⊞</button>
+        <button class="icon-btn" title="Help">?</button>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- ── INBOX VIEW ── -->
+      <div class="view active" id="view-inbox">
+        <div class="split-view">
+
+          <!-- Left list -->
+          <div class="split-list">
+
+            <div class="inbox-toolbar">
+              <div class="toolbar-left">
+                <select class="tb-select" id="querySelect" onchange="loadEmails()">
+                  <option value="is:unread">Unread</option>
+                  <option value="in:inbox">All Inbox</option>
+                  <option value="is:important">Important</option>
+                  <option value="has:attachment">Attachments</option>
+                </select>
+                <select class="tb-select" id="countSelect" onchange="loadEmails()">
+                  <option value="5">5</option>
+                  <option value="10" selected>10</option>
+                  <option value="20">20</option>
+                  <option value="30">30</option>
+                </select>
+                <button class="tb-btn primary" onclick="loadEmails()">↓ Fetch</button>
+              </div>
+              <div class="toolbar-right">
+                <span id="emailCountLabel" style="font-size:11px;color:var(--t3)"></span>
+              </div>
+            </div>
+
+            <div class="category-tabs">
+              <div class="cat-tab active" onclick="filterCategory('all',this)">
+                <span class="cat-icon">📬</span> All
+              </div>
+              <div class="cat-tab" onclick="filterCategory('follow_up',this)">
+                <span class="cat-icon">🔄</span> Follow-up
+              </div>
+              <div class="cat-tab" onclick="filterCategory('inquiry',this)">
+                <span class="cat-icon">❓</span> Inquiries
+              </div>
+              <div class="cat-tab" onclick="filterCategory('complaint',this)">
+                <span class="cat-icon">⚠️</span> Complaints
+              </div>
+            </div>
+
+            <div class="email-list-wrap" id="emailListWrap">
+              <div class="empty-state">
+                <div class="eicon">📬</div>
+                <div class="etitle">Your inbox awaits</div>
+                <div class="edesc">Click Fetch to load emails from Gmail</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right reading pane -->
+          <div class="reading-pane" id="readingPane">
+
+            <div class="reading-empty" id="readingEmpty">
+              <div class="big-icon">✉️</div>
+              <p>Select an email to read and generate a reply</p>
+            </div>
+
+            <!-- Email reader (hidden until email selected) -->
+            <div id="emailReader" style="display:none;flex-direction:column;height:100%;overflow:hidden">
+
+              <div class="reader-header">
+                <div class="reader-subject" id="readerSubject"></div>
+                <div class="reader-meta">
+                  <div class="reader-avatar" id="readerAvatar"></div>
+                  <div class="reader-sender-info">
+                    <div class="reader-sender-name" id="readerSender"></div>
+                    <div class="reader-sender-email" id="readerEmail"></div>
+                  </div>
+                  <div class="reader-date" id="readerDate"></div>
+                </div>
+                <div class="reader-chips" id="readerChips"></div>
+              </div>
+
+              <div class="reader-actions">
+                <button class="tb-btn primary" id="generateBtn" onclick="generateReply()">✦ Generate Reply</button>
+                <button class="tb-btn" onclick="generateVariants()">All 3 tones</button>
+                <button class="tb-btn" onclick="copyReply()">📋 Copy</button>
+                <button class="tb-btn" onclick="sendReply()" style="margin-left:auto">📤 Send</button>
+              </div>
+
+              <div class="reader-body" id="readerBody"></div>
+
+              <!-- AI Reply drawer -->
+              <div class="reply-drawer" id="replyDrawer">
+                <div class="reply-drawer-header">
+                  <div class="reply-drawer-title">AI Reply</div>
+                  <div class="ai-badge">Gemini</div>
+                  <div style="margin-left:auto;display:flex;gap:6px">
+                    <button class="tb-btn" style="padding:4px 10px;font-size:11px" onclick="generateReply()">↻ Regen</button>
+                  </div>
+                </div>
+
+                <div class="tone-row" id="toneRow">
+                  <button class="tone-pill active" onclick="setTone(this,'professional')">Professional</button>
+                  <button class="tone-pill" onclick="setTone(this,'friendly')">Friendly</button>
+                  <button class="tone-pill" onclick="setTone(this,'concise')">Concise</button>
+                  <button class="tone-pill" onclick="setTone(this,'empathetic')">Empathetic</button>
+                  <button class="tone-pill" onclick="setTone(this,'assertive')">Assertive</button>
+                </div>
+
+                <div id="variantsRow" style="display:none" class="variants-row"></div>
+
+                <textarea class="reply-textarea" id="replyTextarea" placeholder="Your AI-generated reply will appear here…"></textarea>
+
+                <div class="reply-actions">
+                  <button class="tb-btn primary" onclick="sendReply()">📤 Send Reply</button>
+                  <button class="tb-btn" onclick="copyReply()">📋 Copy</button>
+                  <button class="tb-btn" onclick="generateVariants()">✦ 3 Variants</button>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ── HISTORY VIEW ── -->
+      <div class="view" id="view-history">
+        <div class="history-view-inner">
+          <div class="history-header-bar">
+            <div class="history-title">Reply History</div>
+            <button class="tb-btn" onclick="loadHistory()">↻ Refresh</button>
+          </div>
+
+          <!-- Stats strip -->
+          <div class="stats-strip" id="statsStrip" style="display:none;border-radius:var(--radius-md);overflow:hidden;margin-bottom:20px;border:1px solid var(--border)">
+            <div class="stat-pill"><div class="stat-val" id="st1">0</div><div class="stat-lbl">Total</div></div>
+            <div class="stat-pill"><div class="stat-val" id="st2" style="color:var(--blue)">0</div><div class="stat-lbl">Professional</div></div>
+            <div class="stat-pill"><div class="stat-val" id="st3" style="color:var(--green)">0</div><div class="stat-lbl">Friendly</div></div>
+            <div class="stat-pill"><div class="stat-val" id="st4" style="color:var(--amber)">0</div><div class="stat-lbl">Concise</div></div>
+          </div>
+
+          <div id="historyWrap">
+            <div class="loading-row"><div class="spinner"></div> Loading history…</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────
+const S = {
+  emails: [],
+  filtered: [],
+  selected: null,
+  tone: 'professional',
+  category: 'all',
+  repliesSent: 0,
+};
+
+// ── Avatar colors ─────────────────────────────────────────────
+const COLORS = ['#4a7cf7','#2dd4a0','#f5a623','#818cf8','#f56565','#38bdf8','#a78bfa'];
+function avatarColor(name) { let h=0; for(let c of name) h+=c.charCodeAt(0); return COLORS[h%COLORS.length]; }
+function avatarInitial(name) { return (name||'?')[0].toUpperCase(); }
+function senderName(raw) { return (raw||'').replace(/<.*>/,'').replace(/"/g,'').trim() || 'Unknown'; }
+
+// ── View switching ─────────────────────────────────────────────
+function switchView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + name).classList.add('active');
+  document.querySelectorAll('.rail-btn').forEach(b => b.classList.remove('active'));
+  const idx = { inbox: 0, history: 1 };
+  document.querySelectorAll('.rail-btn')[idx[name] || 0]?.classList.add('active');
+  document.querySelectorAll('.nav-row').forEach(r => r.classList.remove('active'));
+  if (name === 'history') loadHistory();
+}
+
+function setQuery(q) {
+  document.getElementById('querySelect').value = q;
+  loadEmails();
+}
+
+// ── Toast ─────────────────────────────────────────────────────
+function toast(msg, type='info') {
+  const t = document.getElementById('toast');
+  const icons = { success:'✅', error:'❌', info:'ℹ️' };
+  t.innerHTML = `<span>${icons[type]||'ℹ️'}</span>${msg}`;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ── Tone ──────────────────────────────────────────────────────
+function setTone(el, tone) {
+  document.querySelectorAll('.tone-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  S.tone = tone;
+}
+
+// ── Format date ───────────────────────────────────────────────
+function fmtDate(str) {
+  if (!str) return '';
+  try {
+    const d = new Date(str);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString())
+      return d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  } catch { return ''; }
+}
+
+// ── Intent chip ───────────────────────────────────────────────
+function intentChip(intent) {
+  const map = {
+    complaint: 'chip-red', inquiry: 'chip-blue',
+    follow_up: 'chip-amber', meeting_request: 'chip-green',
+    thank_you: 'chip-green', general: 'chip-gray',
+    escalation: 'chip-red', job_application: 'chip-blue'
+  };
+  return `<span class="chip ${map[intent]||'chip-gray'}">${(intent||'general').replace('_',' ')}</span>`;
+}
+
+function urgencyChip(urgency) {
+  const map = { high: 'chip-red', medium: 'chip-amber', normal: 'chip-green' };
+  return `<span class="chip ${map[urgency]||'chip-gray'}">${urgency||'normal'}</span>`;
+}
+
+// ── Load emails ────────────────────────────────────────────────
+async function loadEmails() {
+  const wrap  = document.getElementById('emailListWrap');
+  const query = document.getElementById('querySelect').value;
+  const count = document.getElementById('countSelect').value;
+  wrap.innerHTML = `<div class="loading-row"><div class="spinner"></div> Fetching from Gmail…</div>`;
+
+  try {
+    const res  = await fetch(`/api/emails?max_results=${count}&query=${encodeURIComponent(query)}`);
+    const data = await res.json();
+    S.emails = data.emails || [];
+    S.filtered = [...S.emails];
+
+    document.getElementById('navCount').textContent = S.emails.length || '';
+    document.getElementById('emailCountLabel').textContent = S.emails.length ? `${S.emails.length} emails` : '';
+
+    renderEmailList();
+
+  } catch(e) {
+    wrap.innerHTML = `<div class="empty-state"><div class="eicon">⚠️</div><div class="etitle">Could not fetch</div><div class="edesc">${e.message}</div></div>`;
+    toast('Failed to fetch emails', 'error');
+  }
+}
+
+function filterCategory(cat, el) {
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  S.category = cat;
+  renderEmailList();
+}
+
+function renderEmailList() {
+  const wrap = document.getElementById('emailListWrap');
+  if (!S.emails.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="eicon">📭</div><div class="etitle">No emails</div><div class="edesc">Try a different filter</div></div>`;
+    return;
+  }
+  wrap.innerHTML = S.emails.map((e,i) => emailItemHTML(e,i)).join('');
+}
+
+function emailItemHTML(email, i) {
+  const name    = senderName(email.sender);
+  const snippet = (email.snippet || email.body || '').slice(0, 100);
+  const color   = avatarColor(name);
+  const initial = avatarInitial(name);
+  return `
+    <div class="email-item unread" id="ei-${i}" onclick="selectEmail(${i})" style="animation-delay:${i*0.03}s">
+      <div class="email-check">
+        <div class="avatar-circle" style="background:${color}">${initial}</div>
+      </div>
+      <div class="email-body-col">
+        <div class="email-row1">
+          <span class="email-sender-name">${name}</span>
+          <span class="email-subject-line">${email.subject || '(No subject)'}</span>
+        </div>
+        <div class="email-row2">
+          <span class="email-snippet-combined">${snippet}</span>
+        </div>
+      </div>
+      <div class="email-meta-col">
+        <span class="email-time">${fmtDate(email.date)}</span>
+        <button class="quick-reply-btn" onclick="event.stopPropagation();quickReply(${i})">✦ Reply</button>
+      </div>
+    </div>`;
+}
+
+// ── Select email ──────────────────────────────────────────────
+function selectEmail(i) {
+  S.selected = S.emails[i];
+  document.querySelectorAll('.email-item').forEach(e => e.classList.remove('selected'));
+  document.getElementById('ei-' + i)?.classList.add('selected');
+  renderReader(S.selected);
+}
+
+function quickReply(i) {
+  selectEmail(i);
+  setTimeout(generateReply, 200);
+}
+
+function renderReader(email) {
+  const name  = senderName(email.sender);
+  const color = avatarColor(name);
+
+  document.getElementById('readingEmpty').style.display = 'none';
+  const reader = document.getElementById('emailReader');
+  reader.style.display = 'flex';
+
+  document.getElementById('readerSubject').textContent = email.subject || '(No subject)';
+  document.getElementById('readerAvatar').textContent  = avatarInitial(name);
+  document.getElementById('readerAvatar').style.background = color;
+  document.getElementById('readerSender').textContent  = name;
+  document.getElementById('readerEmail').textContent   = email.sender || '';
+  document.getElementById('readerDate').textContent    = fmtDate(email.date);
+  document.getElementById('readerBody').textContent    = (email.body || email.snippet || '').slice(0, 2000);
+  document.getElementById('readerChips').innerHTML     = `<span class="chip chip-gray">Analyzing…</span>`;
+  document.getElementById('replyTextarea').value       = '';
+  document.getElementById('variantsRow').style.display = 'none';
+}
+
+// ── Generate reply ────────────────────────────────────────────
+async function generateReply() {
+  if (!S.selected) return toast('Select an email first', 'error');
+  const btn = document.getElementById('generateBtn');
+  const ta  = document.getElementById('replyTextarea');
+  btn.disabled = true;
+  ta.value = '';
+  ta.placeholder = '✦ Gemini is writing your reply…';
+
+  try {
+    const res  = await fetch('/api/generate-reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email_id: S.selected.id, tone: S.tone, generate_variants: false })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    ta.value = data.reply || '';
+    ta.placeholder = 'Your AI-generated reply…';
+
+    document.getElementById('readerChips').innerHTML =
+      intentChip(data.intent) + urgencyChip(data.urgency);
+    document.getElementById('variantsRow').style.display = 'none';
+
+    toast('Reply generated!', 'success');
+
+  } catch(e) {
+    ta.placeholder = '⚠️ Generation failed — ' + e.message;
+    toast('Generation failed', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── Generate 3 variants ────────────────────────────────────────
+async function generateVariants() {
+  if (!S.selected) return toast('Select an email first', 'error');
+  const ta = document.getElementById('replyTextarea');
+  ta.value = '';
+  ta.placeholder = '✦ Generating 3 tone variants…';
+  document.getElementById('variantsRow').style.display = 'none';
+
+  try {
+    const res  = await fetch('/api/generate-reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email_id: S.selected.id, tone: 'professional', generate_variants: true })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    const vr = document.getElementById('variantsRow');
+    vr.style.display = 'grid';
+    vr.innerHTML = Object.entries(data.variants || {}).map(([tone, text]) => `
+      <div class="variant-card" onclick="pickVariant(this)" data-text="${text.replace(/"/g,'&quot;')}">
+        <div class="variant-card-label">${tone}</div>
+        <div class="variant-card-text">${text}</div>
+      </div>`).join('');
+
+    ta.placeholder = '← Click a variant to edit it';
+    toast('3 variants ready!', 'success');
+
+  } catch(e) {
+    ta.placeholder = '⚠️ ' + e.message;
+    toast('Failed to generate variants', 'error');
+  }
+}
+
+function pickVariant(card) {
+  document.querySelectorAll('.variant-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  document.getElementById('replyTextarea').value = card.dataset.text;
+}
+
+// ── Send / Copy ───────────────────────────────────────────────
+async function sendReply() {
+  if (!S.selected) return toast('No email selected', 'error');
+  const body = document.getElementById('replyTextarea').value;
+  if (!body.trim()) return toast('Generate a reply first', 'error');
+
+  try {
+    const res  = await fetch('/api/send-reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email_id:   S.selected.id,
+        to:         S.selected.sender,
+        subject:    S.selected.subject,
+        reply_body: body
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    S.repliesSent++;
+    toast('Reply sent successfully!', 'success');
+  } catch(e) {
+    toast('Send failed: ' + e.message, 'error');
+  }
+}
+
+function copyReply() {
+  const text = document.getElementById('replyTextarea').value;
+  if (!text.trim()) return toast('Nothing to copy', 'error');
+  navigator.clipboard.writeText(text);
+  toast('Copied to clipboard!', 'success');
+}
+
+// ── History ───────────────────────────────────────────────────
+async function loadHistory() {
+  const wrap = document.getElementById('historyWrap');
+  wrap.innerHTML = `<div class="loading-row"><div class="spinner"></div> Loading history…</div>`;
+
+  try {
+    const res     = await fetch('/api/history?limit=30');
+    const data    = await res.json();
+    const records = data.history || [];
+
+    if (!records.length) {
+      wrap.innerHTML = `<div class="empty-state"><div class="eicon">📭</div><div class="etitle">No history yet</div><div class="edesc">Generate some replies first</div></div>`;
+      return;
+    }
+
+    // Stats
+    document.getElementById('statsStrip').style.display = 'flex';
+    document.getElementById('st1').textContent = records.length;
+    document.getElementById('st2').textContent = records.filter(r=>r.tone==='professional').length;
+    document.getElementById('st3').textContent = records.filter(r=>r.tone==='friendly').length;
+    document.getElementById('st4').textContent = records.filter(r=>r.tone==='concise').length;
+
+    wrap.innerHTML = records.map((r,i) => `
+      <div class="history-card" style="animation-delay:${i*0.03}s">
+        <div class="history-card-top">
+          <div>
+            <div class="history-card-subject">${r.subject || '(No subject)'}</div>
+            <div class="history-card-sender">${r.sender || 'Unknown'}</div>
+          </div>
+          <div class="history-card-chips">
+            ${intentChip(r.intent)}
+            ${urgencyChip(r.urgency)}
+            <span class="chip chip-gray">${r.tone || 'professional'}</span>
+          </div>
+        </div>
+        <div class="history-reply-box">${r.reply || ''}</div>
+        <div class="history-card-footer">
+          <button class="tb-btn" style="padding:4px 10px;font-size:11px" onclick="navigator.clipboard.writeText(this.closest('.history-card').querySelector('.history-reply-box').textContent);toast('Copied!','success')">📋 Copy</button>
+          <span class="history-card-time">${new Date(r.created_at).toLocaleString('en-IN')}</span>
+        </div>
+      </div>`).join('');
+
+  } catch(e) {
+    wrap.innerHTML = `<div class="empty-state"><div class="eicon">⚠️</div><div class="etitle">Error</div><div class="edesc">${e.message}</div></div>`;
+  }
+}
+
+    
+// ── Search ────────────────────────────────────────────────────
+function searchEmails(query) {
+  // Live filter already-loaded emails by sender/subject/snippet
+  if (!query.trim()) {
+    S.filtered = [...S.emails];
+    renderEmailList();
+    return;
+  }
+
+  const q = query.toLowerCase();
+  S.filtered = S.emails.filter(e =>
+    (e.sender  || '').toLowerCase().includes(q) ||
+    (e.subject || '').toLowerCase().includes(q) ||
+    (e.snippet || '').toLowerCase().includes(q) ||
+    (e.body    || '').toLowerCase().includes(q)
+  );
+
+  const wrap = document.getElementById('emailListWrap');
+
+  if (!S.filtered.length) {
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <div class="eicon">🔍</div>
+        <div class="etitle">No results for "${query}"</div>
+        <div class="edesc">Try searching by sender name, subject, or keyword.<br>Press Enter to search Gmail directly.</div>
+      </div>`;
+    return;
+  }
+
+  wrap.innerHTML = S.filtered.map((e, i) => emailItemHTML(e, i)).join('');
+}
+
+async function fetchSearch(query) {
+  // Press Enter → search Gmail directly via API
+  if (!query.trim()) return;
+
+  const wrap = document.getElementById('emailListWrap');
+  wrap.innerHTML = `<div class="loading-row"><div class="spinner"></div> Searching Gmail for "${query}"…</div>`;
+
+  try {
+    const gmailQuery = encodeURIComponent(query);
+    const count = document.getElementById('countSelect').value;
+    const res   = await fetch(`/api/emails?max_results=${count}&query=${gmailQuery}`);
+    const data  = await res.json();
+
+    S.emails   = data.emails || [];
+    S.filtered = [...S.emails];
+
+    document.getElementById('navCount').textContent      = S.emails.length || '';
+    document.getElementById('emailCountLabel').textContent = S.emails.length
+      ? `${S.emails.length} results for "${query}"`
+      : `No results for "${query}"`;
+
+    renderEmailList();
+
+    if (!S.emails.length) {
+      wrap.innerHTML = `
+        <div class="empty-state">
+          <div class="eicon">🔍</div>
+          <div class="etitle">No results for "${query}"</div>
+          <div class="edesc">Try a different search term</div>
+        </div>`;
+    }
+
+  } catch(e) {
+    wrap.innerHTML = `<div class="empty-state"><div class="eicon">⚠️</div><div class="etitle">Search failed</div><div class="edesc">${e.message}</div></div>`;
+    toast('Search failed', 'error');
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────
+loadEmails();
+</script>
+</body>
+</html>
