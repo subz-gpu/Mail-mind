@@ -7,3 +7,8 @@ emails.db
 *.egg-info/
 dist/
 build/
+.ipynb_checkpoints/
+credentials.json
+token.json
+*.json
+!package.json
